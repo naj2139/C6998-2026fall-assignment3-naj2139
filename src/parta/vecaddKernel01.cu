@@ -24,5 +24,34 @@ __global__ void AddVectors(const float *A, const float *B, float *C, int valuesP
     // valuesPerThread elements, with an index mapping that makes consecutive
     // threads in a warp access consecutive addresses at each step (coalesced).
     // The stub leaves C unwritten, so it fails the check until you implement it.
-    (void)A; (void)B; (void)C; (void)valuesPerThread;
+    
+    // (void)A; (void)B; (void)C; (void)valuesPerThread;
+
+    // Step 1: who am I across the whole grid?
+    //   blockIdx.x  = which block I'm in        (0 … gridDim.x − 1)
+    //   blockDim.x  = threads per block          (e.g. 256)
+    //   threadIdx.x = my position in my block    (0 … blockDim.x − 1)
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // flat array:  [0 1 2 3 4 5 6 7 8 9 10 11]
+    // folded into rows of width 4 (= totalThreads):
+    //         tid 0   tid 1   tid 2   tid 3
+    // row j=0:   0       1       2       3
+    // row j=1:   4       5       6       7
+    // row j=2:   8       9      10      11
+
+    int totalThreads = blockDim.x * gridDim.x;
+
+    // Columns = threads. Thread 0 owns column 0, thread 1 owns column 1, and so on.
+    // Rows = loop iterations. Iteration j handles row j.
+    // valuesPerThread = number of rows. Each thread does one element per row, which gives exactly 3 elements per thread.
+    int idx;
+    for (int j = 0; j < valuesPerThread; ++j){
+        idx = j * totalThreads + tid;
+        C[idx] = A[idx] + B[idx];
+    }
+    
+    
+    
+    
 }
