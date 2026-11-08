@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HPML HW3 (CUDA Kernels) results.json",
+  "description": "Schema for the results.json that grade_local.py writes. Gradescope validates a submitted results.json against this schema and against a few sanity bounds; it does NOT re-check performance or correctness itself -- that already happened on the student's own GPU when grade_local.py ran, and this file is the durable, host-stamped record of that run.",
+  "type": "object",
+  "required": ["meta", "part_a", "part_b", "part_c", "part_c_bonus_triton"],
+  "additionalProperties": false,
+  "definitions": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "skipped", "failed"]
+    },
+    "run": {
+      "type": "object",
+      "description": "One parsed RESULT,... line from a program's stdout. Fields vary by program; time_ms and correct are the two the grader leans on most.",
+      "type": "object",
+      "properties": {
+        "time_ms": {"type": ["number", "null"]},
+        "correct": {"type": ["integer", "boolean", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "program_result": {
+      "type": "object",
+      "required": ["status", "runs"],
+      "properties": {
+        "status": {"$ref": "#/definitions/status"},
+        "reason": {"type": ["string", "null"]},
+        "build_ok": {"type": ["boolean", "null"]},
+        "runs": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/run"}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["assignment", "mode", "generated_at", "host"],
+      "properties": {
+        "assignment": {"type": "string"},
+        "mode": {"type": "string", "enum": ["gpu", "dry-run"]},
+        "generated_at": {"type": "string", "description": "ISO-8601 UTC timestamp."},
+        "grader_version": {"type": ["string", "null"]},
+        "host": {
+          "type": "object",
+          "required": ["hostname", "platform", "cuda_available"],
+          "properties": {
+            "hostname": {"type": "string"},
+            "platform": {"type": "string"},
+            "python_version": {"type": ["string", "null"]},
+            "cuda_available": {"type": "boolean"},
+            "nvcc_version": {"type": ["string", "null"]},
+            "gpu_name": {"type": ["string", "null"]},
+            "driver_version": {"type": ["string", "null"]}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "part_a": {
+      "type": "object",
+      "required": ["vecadd00", "vecadd01", "matmult00", "matmult01"],
+      "properties": {
+        "vecadd00": {"$ref": "#/definitions/program_result"},
+        "vecadd01": {"$ref": "#/definitions/program_result"},
+        "matmult00": {"$ref": "#/definitions/program_result"},
+        "matmult01": {"$ref": "#/definitions/program_result"},
+        "coalescing_speedup": {"type": ["number", "null"]},
+        "tiling_speedup": {"type": ["number", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "part_b": {
+      "type": "object",
+      "required": ["q1_cpu", "q2_malloc", "q3_unified"],
+      "properties": {
+        "q1_cpu": {"$ref": "#/definitions/program_result"},
+        "q2_malloc": {"$ref": "#/definitions/program_result"},
+        "q3_unified": {"$ref": "#/definitions/program_result"}
+      },
+      "additionalProperties": false
+    },
+    "part_c": {
+      "type": "object",
+      "required": ["c1_naive", "c2_tiled", "c3_cublas", "correctness"],
+      "properties": {
+        "c1_naive": {"$ref": "#/definitions/program_result"},
+        "c2_tiled": {"$ref": "#/definitions/program_result"},
+        "c3_cublas": {"$ref": "#/definitions/program_result"},
+        "correctness": {
+          "type": "object",
+          "description": "Cross-checks between the three implementations on a small (tiny-dims) input, where the CPU-dry-run path can also exercise this against a NumPy/Python reference.",
+          "properties": {
+            "c1_vs_c2_checksum_match": {"type": ["boolean", "null"]},
+            "c1_vs_c3_checksum_match": {"type": ["boolean", "null"]},
+            "reference_checksum_match": {"type": ["boolean", "null"]}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "part_c_bonus_triton": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"$ref": "#/definitions/status"},
+        "reason": {"type": ["string", "null"]},
+        "note": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

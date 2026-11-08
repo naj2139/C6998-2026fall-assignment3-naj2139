@@ -1,0 +1,16 @@
+# Pinned for HPML Fall 2026 (Python 3.11+, CUDA 12.x, PyTorch 2.9).
+#
+# Only jsonschema, matplotlib, and pytest are needed to run grade_local.py
+# and the public tests -- they work on any machine, GPU or not. torch and
+# triton are needed ONLY for the Part-C4 Triton bonus notebook, and only on
+# a GPU machine; they are marked optional below.
+
+jsonschema>=4.20,<5
+matplotlib>=3.8
+pytest>=8.0
+numpy>=1.26,<3
+
+# --- Optional: GPU machine only, needed for the Part C4 Triton bonus ---
+# torch==2.9.*
+# triton>=3.3
+# jupyter
