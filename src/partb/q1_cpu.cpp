@@ -21,8 +21,11 @@
 static void addArrays(long n, const float *x, const float *y, float *z) {
     // TODO (B1): set z to the element-wise sum of x and y (both length n).
     // The placeholder below writes zeros so the program runs; replace it.
-    (void)x; (void)y;
-    memset(z, 0, (size_t)n * sizeof(float));
+    
+    for (long i = 0; i < n; ++i) {z[i] = x[i]+y[i];}
+    
+    // (void)x; (void)y;
+    // memset(z, 0, (size_t)n * sizeof(float));
 }
 
 int main(int argc, char **argv)

@@ -41,8 +41,27 @@ static float runScenario(int scenario, long n, float *dz, const float *dx, const
 {
     GpuTimer timer;
     timer.start();
-    (void)scenario; (void)n; (void)dz; (void)dx; (void)dy;
+    // (void)scenario; (void)n; (void)dz; (void)dx; (void)dy;
     // TODO: dispatch on `scenario` and issue the launches described above.
+
+    if (scenario == 1){
+        for (long i = 0; i < n; ++i) {
+            addKernel<<<1, 1>>>(n, (int)i, dz, dx, dy);
+        }
+    }
+
+    if (scenario == 2){
+        long iter = (n + 255) / 256;
+        for (long i = 0; i < iter; ++i) {
+            addKernel<<<1, 256>>>(n, (int)(i * 256), dz, dx, dy);
+        }
+    }
+
+    if (scenario == 3){
+        long blocks = (n + 255) / 256;
+        addKernel<<<blocks, 256>>>(n, 0, dz, dx, dy);
+    }
+
     timer.stop();
     return timer.elapsed_ms();
 }

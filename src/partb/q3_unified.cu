@@ -24,7 +24,26 @@ static float runScenario(int scenario, long n, float *z, const float *x, const f
     GpuTimer timer;
     timer.start();
     (void)scenario; (void)n; (void)z; (void)x; (void)y;
-    // TODO: dispatch on `scenario` and issue the launches (see q2_malloc.cu).
+    
+    if (scenario == 1){
+        for (long i = 0; i < n; ++i) {
+            addKernel<<<1, 1>>>(n, (int)i, z, x, y);
+        }
+    }
+
+    if (scenario == 2){
+        long iter = (n + 255) / 256;
+        for (long i = 0; i < iter; ++i) {
+            addKernel<<<1, 256>>>(n, (int)(i * 256), z, x, y);
+        }
+    }
+
+    if (scenario == 3){
+        long blocks = (n + 255) / 256;
+        addKernel<<<blocks, 256>>>(n, 0, z, x, y);
+    }
+
+
     timer.stop();
     return timer.elapsed_ms();
 }
