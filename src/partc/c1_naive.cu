@@ -26,16 +26,38 @@ __global__ void scores_kernel(int N, int d, double scale,
                                const double *Q, const double *K, double *S)
 {
     // TODO (C1): compute the scores for the entries this thread owns.
-    (void)N; (void)d; (void)scale; (void)Q; (void)K; (void)S;
+    // (void)N; (void)d; (void)scale; (void)Q; (void)K; (void)S;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;   // row of S = row of Q
+    int col = blockIdx.x * blockDim.x + threadIdx.x;   // col of S = row of K
+    if (row < N && col < N) {
+        // address = slow_index × stride + fast_index
+        double total = 0.0;
+        for (int k = 0; k < d; ++k) {
+            total += Q[row * d + k] * K[col * d + k];
+        }
+        S[row * N + col] = total * scale;
+    }
 }
 
 // Replace S in place with its numerically safe row-wise softmax: subtract
 // each row's max before exponentiating, then divide by the row sum. You
 // choose how to parallelize the per-row reduction.
-__global__ void softmax_rows_kernel(int N, double *S)
-{
-    // TODO (C1): safe row softmax of S.
-    (void)N; (void)S;
+__global__ void softmax_rows_kernel(int N, double *S){
+    long row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < N) {
+        double rowMax = S[row * N + 0];
+        for (int i = 1; i < N; ++i) {
+            rowMax = fmax(rowMax, S[row * N + i]);
+        }
+        double sum = 0.0;
+        for (int i = 0; i < N; ++i) {
+            S[row * N + i] = exp(S[row * N + i] - rowMax);
+            sum += S[row * N + i];
+        }
+        for (int i = 0; i < N; ++i) {
+            S[row * N + i] /= sum;
+        }
+    }
 }
 
 // Fill O (N x d, row-major) with O[i,t] = sum_j P[i,j] * V[j,t], where P is
@@ -43,8 +65,17 @@ __global__ void softmax_rows_kernel(int N, double *S)
 // choose the thread/block decomposition.
 __global__ void output_kernel(int N, int d, const double *P, const double *V, double *O)
 {
-    // TODO (C1): compute the output entries this thread owns.
-    (void)N; (void)d; (void)P; (void)V; (void)O;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;   
+    int t = blockIdx.x * blockDim.x + threadIdx.x;   
+
+    if (i < N && t < d) {
+        double total = 0.0;
+        for (int j = 0; j < N; ++j) {
+            // address = slow_index × stride + fast_index
+            total += P[i * N + j] * V[j * d + t];
+        }
+        O[i * d + t] = total;
+    }
 }
 
 int main(int argc, char **argv)
@@ -78,6 +109,17 @@ int main(int argc, char **argv)
     //   scores_kernel<<<...>>>(a.N, a.d, scale, dQ, dK, dS);
     //   softmax_rows_kernel<<<...>>>(a.N, dS);
     //   output_kernel<<<...>>>(a.N, a.d, dS, dV, dO);
+
+    dim3 block(16, 16);
+    dim3 grid((a.N + 15) / 16, (a.N + 15) / 16);
+    scores_kernel<<<grid, block>>>(a.N, a.d, scale, dQ, dK, dS);
+
+    softmax_rows_kernel<<<(a.N + 255) / 256, 256>>>(a.N, dS);
+
+    dim3 block(16, 16);
+    dim3 grid((a.d + 15) / 16, (a.N + 15) / 16);
+    output_kernel<<<grid, block>>>(a.N, a.d, dS, dV, dO);
+
     cudaEventRecord(stopE);
     cudaEventSynchronize(stopE);
     float ms = 0.0f;
