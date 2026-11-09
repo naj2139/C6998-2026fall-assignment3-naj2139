@@ -113,11 +113,8 @@ int main(int argc, char **argv)
     dim3 block(16, 16);
     dim3 grid((a.N + 15) / 16, (a.N + 15) / 16);
     scores_kernel<<<grid, block>>>(a.N, a.d, scale, dQ, dK, dS);
-
     softmax_rows_kernel<<<(a.N + 255) / 256, 256>>>(a.N, dS);
-
-    dim3 block(16, 16);
-    dim3 grid((a.d + 15) / 16, (a.N + 15) / 16);
+    grid = dim3((a.d + 15) / 16, (a.N + 15) / 16);
     output_kernel<<<grid, block>>>(a.N, a.d, dS, dV, dO);
 
     cudaEventRecord(stopE);

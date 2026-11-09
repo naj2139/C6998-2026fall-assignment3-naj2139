@@ -31,8 +31,23 @@
 // unchanged, so C3 will not match the reference until you fill it in.
 __global__ void softmax_rows_kernel(int N, double *S)
 {
+    long row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < N) {
+        double rowMax = S[row * N + 0];
+        for (int i = 1; i < N; ++i) {
+            rowMax = fmax(rowMax, S[row * N + i]);
+        }
+        double sum = 0.0;
+        for (int i = 0; i < N; ++i) {
+            S[row * N + i] = exp(S[row * N + i] - rowMax);
+            sum += S[row * N + i];
+        }
+        for (int i = 0; i < N; ++i) {
+            S[row * N + i] /= sum;
+        }
+    }
     // TODO (C3): safe row-wise softmax of S.
-    (void)N; (void)S;
+    // (void)N; (void)S;
 }
 
 int main(int argc, char **argv)
@@ -75,6 +90,43 @@ int main(int argc, char **argv)
     //      own grid/block/shared-memory configuration)
     //   3. O = P * V             (one cublasDgemm; result row-major N x d in dO)
     // Do not change the timing scaffold around this block.
+
+    // 1. S = scale * Q * K^T  (row-major N x N)
+    //    cuBLAS is column-major, so it sees every row-major matrix X as X^T.
+    //    We ask it for S^T = K * Q^T; a column-major S^T in memory is exactly
+    //    the row-major S we want.
+    // 1. S = scale * Q * K^T  (row-major N x N), computed as S^T = K * Q^T
+    CUBLAS_CHECK(cublasDgemm(
+        h,                          // cuBLAS handle
+        CUBLAS_OP_T,                // cuBLAS sees dK as K^T; transpose back to K
+        CUBLAS_OP_N,                // cuBLAS sees dQ as Q^T, already what we need
+        N,                          // rows of the result
+        N,                          // columns of the result
+        d,                          // shared inner dimension
+        &alpha_s,                   // scale = 1/sqrt(d)
+        dK, d,                      // K, row length d
+        dQ, d,                      // Q, row length d
+        &beta0,                     // 0: overwrite S
+        dS, N                       // S, row length N
+    ));
+
+    // 2. softmax over the rows of S
+    softmax_rows_kernel<<<(N + 255) / 256, 256>>>(N, dS);
+
+    // 3. O = P * V  (row-major N x d), computed as O^T = V^T * P^T
+    CUBLAS_CHECK(cublasDgemm(
+        h,                          // cuBLAS handle
+        CUBLAS_OP_N,                // cuBLAS sees dV as V^T, already what we need
+        CUBLAS_OP_N,                // cuBLAS sees dS as P^T, already what we need
+        d,                          // rows of the result
+        N,                          // columns of the result
+        N,                          // shared inner dimension
+        &alpha1,                    // 1: plain product
+        dV, d,                      // V, row length d
+        dS, N,                      // P, row length N
+        &beta0,                     // 0: overwrite O
+        dO, d                       // O, row length d
+    ));
 
     cudaEventRecord(stopE);
     cudaEventSynchronize(stopE);
