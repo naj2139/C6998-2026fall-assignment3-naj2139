@@ -28,7 +28,69 @@ __global__ void attn_tiled(int N, int d, double scale,
     // accumulator across key/value tiles. Do not materialize the N x N
     // scores. Place __syncthreads() where shared-memory writes must be
     // visible before other threads read them.
-    (void)N; (void)d; (void)scale; (void)Q; (void)K; (void)V; (void)O;
+    // (void)N; (void)d; (void)scale; (void)Q; (void)K; (void)V; (void)O;
+
+    const long B_q = 1;
+    const long B_k = 32;
+    const long T_k = ((long)N + B_k - 1) / B_k;
+
+    extern __shared__ double smem[];
+    double *Q_i  = smem;
+    double *K_j  = Q_i + d;
+    double *V_j  = K_j + B_k * d;
+    double *S_ij = V_j + B_k * d;
+
+    long i = (long)blockIdx.x * B_q;
+    long t = threadIdx.x;
+    long step = blockDim.x;
+
+    for (long c = t; c < d; c += step)
+        Q_i[c] = Q[i * d + c];
+
+    double m_i = -INFINITY;
+    double l_i = 0.0;
+    double O_i = 0.0;
+
+    for (long j = 0; j < T_k; ++j) {
+        long k0 = j * B_k;
+        long len = min(B_k, (long)N - k0);
+
+        for (long e = t; e < len * d; e += step) {
+            long r = e / d, c = e % d;
+            K_j[r * d + c] = K[(k0 + r) * d + c];
+            V_j[r * d + c] = V[(k0 + r) * d + c];
+        }
+        __syncthreads();
+
+        for (long r = t; r < len; r += step) {
+            double dot = 0.0;
+            for (long c = 0; c < d; ++c)
+                dot += Q_i[c] * K_j[r * d + c];
+            S_ij[r] = dot * scale;
+        }
+        __syncthreads();
+
+        double rowmax = S_ij[0];
+        for (long r = 1; r < len; ++r)
+            rowmax = fmax(rowmax, S_ij[r]);
+
+        double m_new = fmax(m_i, rowmax);
+        double scale_alpha = exp(m_i - m_new);
+        O_i = O_i * scale_alpha;
+        l_i = l_i * scale_alpha;
+
+        for (long r = 0; r < len; ++r) {
+            double P_ij = exp(S_ij[r] - m_new);
+            l_i = l_i + P_ij;
+            O_i = O_i + P_ij * V_j[r * d + t];
+        }
+        m_i = m_new;
+
+        __syncthreads();
+    }
+
+    O_i = O_i / l_i;
+    O[i * d + t] = O_i;
 }
 
 int main(int argc, char **argv)
@@ -56,7 +118,12 @@ int main(int argc, char **argv)
     // TODO (C2): choose the grid, block, and dynamic shared-memory size for
     // your design and launch attn_tiled here. The timing scaffold around
     // this launch is provided; do not change it.
-    //   attn_tiled<<<grid, block, shmemBytes>>>(a.N, a.d, scale, dQ, dK, dV, dO);
+        dim3 grid(a.N);
+    dim3 block(a.d);
+    size_t shmemBytes = ((size_t)a.d + 2 * 32 * (size_t)a.d + 32) * sizeof(double);
+    attn_tiled<<<grid, block, shmemBytes>>>(a.N, a.d, scale, dQ, dK, dV, dO);
+
+
     cudaEventRecord(stopE);
     cudaEventSynchronize(stopE);
     float ms = 0.0f;
