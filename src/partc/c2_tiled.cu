@@ -31,7 +31,7 @@ __global__ void attn_tiled(int N, int d, double scale,
     // accumulator across key/value tiles. Do not materialize the N x N
     // scores. Place __syncthreads() where shared-memory writes must be
     // visible before other threads read them.
-    extern __shared__ double smem[];
+    extern __shared__ double smem[]; // shared memory layout
     double *Q_i  = smem;
     double *K_j  = Q_i + d;
     double *V_j  = K_j + (long)B_K * d;
@@ -50,17 +50,18 @@ __global__ void attn_tiled(int N, int d, double scale,
     double l_i = 0.0;
     double O_i = 0.0;
 
-    for (long j0 = 0; j0 < nN; j0 += B_K) {
-        long len = min((long)B_K, nN - j0);
+    for (long j0 = 0; j0 < nN; j0 += B_K) { // loop over key/value tiles
+        long len = min((long)B_K, nN - j0); // last tile may be short
 
+        // load K and V tile
         for (long e = t; e < len * nd; e += step) {
             long r = e / nd, c = e % nd;
             K_j[r * nd + c] = K[(j0 + r) * nd + c];
             V_j[r * nd + c] = V[(j0 + r) * nd + c];
         }
-        __syncthreads();
+        __syncthreads(); // tile ready
 
-        for (long r = t; r < len; r += step) {
+        for (long r = t; r < len; r += step) { // scores
             double dot = 0.0;
             for (long c = 0; c < nd; ++c)
                 dot += Q_i[c] * K_j[r * nd + c];
@@ -68,23 +69,23 @@ __global__ void attn_tiled(int N, int d, double scale,
         }
         __syncthreads();
 
-        double rowmax = S_ij[0];
+        double rowmax = S_ij[0]; // tile max
         for (long r = 1; r < len; ++r)
             rowmax = fmax(rowmax, S_ij[r]);
 
-        double m_new = fmax(m_i, rowmax);
-        double rescale = exp(m_i - m_new);
+        double m_new = fmax(m_i, rowmax); // update running max
+        double rescale = exp(m_i - m_new); // correct old terms
         O_i *= rescale;
         l_i *= rescale;
 
-        for (long r = 0; r < len; ++r) {
+        for (long r = 0; r < len; ++r) { // accumulate this tile
             double P_ij = exp(S_ij[r] - m_new);
             l_i += P_ij;
             O_i += P_ij * V_j[r * nd + t];
         }
         m_i = m_new;
 
-        __syncthreads();
+        __syncthreads(); // before next tile overwrites
     }
 
     O[i * nd + t] = O_i / l_i;
