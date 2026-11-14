@@ -23,14 +23,15 @@ static float runScenario(int scenario, long n, float *z, const float *x, const f
 {
     GpuTimer timer;
     timer.start();
-    (void)scenario; (void)n; (void)z; (void)x; (void)y;
-    
+
+    // Scenario 1: n launches, 1 thread each (one element per launch)
     if (scenario == 1){
         for (long i = 0; i < n; ++i) {
             addKernel<<<1, 1>>>(n, (int)i, z, x, y);
         }
     }
 
+    // Scenario 2: ceil(n/256) launches, 256 threads each (256 elements per launch)
     if (scenario == 2){
         long iter = (n + 255) / 256;
         for (long i = 0; i < iter; ++i) {
@@ -38,11 +39,11 @@ static float runScenario(int scenario, long n, float *z, const float *x, const f
         }
     }
 
+    // Scenario 3: one launch, ceil(n/256) blocks of 256 threads covering all n
     if (scenario == 3){
         long blocks = (n + 255) / 256;
         addKernel<<<blocks, 256>>>(n, 0, z, x, y);
     }
-
 
     timer.stop();
     return timer.elapsed_ms();

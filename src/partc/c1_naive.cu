@@ -32,29 +32,29 @@ __global__ void scores_kernel(int N, int d, double scale,
     if (row < N && col < N) {
         // address = slow_index × stride + fast_index
         double total = 0.0;
-        for (int k = 0; k < d; ++k) {
-            total += Q[row * d + k] * K[col * d + k];
+        for (int k = 0; k < d; ++k) { // dot product
+            total += Q[row * d + k] * K[col * d + k]; // row-major: row*stride + col
         }
-        S[row * N + col] = total * scale;
+        S[row * N + col] = total * scale; // scaled score, row-major N x N
     }
 }
 
 // Replace S in place with its numerically safe row-wise softmax: subtract
 // each row's max before exponentiating, then divide by the row sum. You
 // choose how to parallelize the per-row reduction.
-__global__ void softmax_rows_kernel(int N, double *S){
+__global__ void softmax_rows_kernel(int N, double *S){ // One thread per row: safe softmax over S[row][:], in place
     long row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row < N) {
-        double rowMax = S[row * N + 0];
+        double rowMax = S[row * N + 0];  // 1. row max
         for (int i = 1; i < N; ++i) {
             rowMax = fmax(rowMax, S[row * N + i]);
         }
-        double sum = 0.0;
+        double sum = 0.0;  // 2. exp(s - max) and row sum
         for (int i = 0; i < N; ++i) {
             S[row * N + i] = exp(S[row * N + i] - rowMax);
             sum += S[row * N + i];
         }
-        for (int i = 0; i < N; ++i) {
+        for (int i = 0; i < N; ++i) {  // 3. normalise so row sums to 1
             S[row * N + i] /= sum;
         }
     }
@@ -63,6 +63,8 @@ __global__ void softmax_rows_kernel(int N, double *S){
 // Fill O (N x d, row-major) with O[i,t] = sum_j P[i,j] * V[j,t], where P is
 // the softmax weights (N x N, row-major) and V is (N, d) row-major. You
 // choose the thread/block decomposition.
+
+// O = P V, one thread per output element
 __global__ void output_kernel(int N, int d, const double *P, const double *V, double *O)
 {
     int i = blockIdx.y * blockDim.y + threadIdx.y;   
@@ -70,9 +72,9 @@ __global__ void output_kernel(int N, int d, const double *P, const double *V, do
 
     if (i < N && t < d) {
         double total = 0.0;
-        for (int j = 0; j < N; ++j) {
+        for (int j = 0; j < N; ++j) { // loop over keys
             // address = slow_index × stride + fast_index
-            total += P[i * N + j] * V[j * d + t];
+            total += P[i * N + j] * V[j * d + t]; // weight times value
         }
         O[i * d + t] = total;
     }
