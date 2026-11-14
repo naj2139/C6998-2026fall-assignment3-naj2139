@@ -1,4 +1,7 @@
 #include "common.h"
+#include <cmath>
+
+#define B_K 32
 
 // TODO (Part C, C2 -- 25 pts): tiled, FlashAttention-style attention.
 //
@@ -21,51 +24,46 @@
 // and runs but will not match the reference until you implement the kernel
 // and its launch.
 __global__ void attn_tiled(int N, int d, double scale,
-                            const double *Q, const double *K, const double *V, double *O)
+                           const double *Q, const double *K, const double *V, double *O)
 {
     // TODO (C2): implement tiled attention for the query row(s) this block
     // owns, carrying the running softmax max, denominator, and output
     // accumulator across key/value tiles. Do not materialize the N x N
     // scores. Place __syncthreads() where shared-memory writes must be
     // visible before other threads read them.
-    // (void)N; (void)d; (void)scale; (void)Q; (void)K; (void)V; (void)O;
-
-    const long B_q = 1;
-    const long B_k = 32;
-    const long T_k = ((long)N + B_k - 1) / B_k;
-
     extern __shared__ double smem[];
     double *Q_i  = smem;
     double *K_j  = Q_i + d;
-    double *V_j  = K_j + B_k * d;
-    double *S_ij = V_j + B_k * d;
+    double *V_j  = K_j + (long)B_K * d;
+    double *S_ij = V_j + (long)B_K * d;
 
-    long i = (long)blockIdx.x * B_q;
+    long i = blockIdx.x;
     long t = threadIdx.x;
+    long nN = N;
+    long nd = d;
     long step = blockDim.x;
 
-    for (long c = t; c < d; c += step)
-        Q_i[c] = Q[i * d + c];
+    for (long c = t; c < nd; c += step)
+        Q_i[c] = Q[i * nd + c];
 
     double m_i = -INFINITY;
     double l_i = 0.0;
     double O_i = 0.0;
 
-    for (long j = 0; j < T_k; ++j) {
-        long k0 = j * B_k;
-        long len = min(B_k, (long)N - k0);
+    for (long j0 = 0; j0 < nN; j0 += B_K) {
+        long len = min((long)B_K, nN - j0);
 
-        for (long e = t; e < len * d; e += step) {
-            long r = e / d, c = e % d;
-            K_j[r * d + c] = K[(k0 + r) * d + c];
-            V_j[r * d + c] = V[(k0 + r) * d + c];
+        for (long e = t; e < len * nd; e += step) {
+            long r = e / nd, c = e % nd;
+            K_j[r * nd + c] = K[(j0 + r) * nd + c];
+            V_j[r * nd + c] = V[(j0 + r) * nd + c];
         }
         __syncthreads();
 
         for (long r = t; r < len; r += step) {
             double dot = 0.0;
-            for (long c = 0; c < d; ++c)
-                dot += Q_i[c] * K_j[r * d + c];
+            for (long c = 0; c < nd; ++c)
+                dot += Q_i[c] * K_j[r * nd + c];
             S_ij[r] = dot * scale;
         }
         __syncthreads();
@@ -75,22 +73,21 @@ __global__ void attn_tiled(int N, int d, double scale,
             rowmax = fmax(rowmax, S_ij[r]);
 
         double m_new = fmax(m_i, rowmax);
-        double scale_alpha = exp(m_i - m_new);
-        O_i = O_i * scale_alpha;
-        l_i = l_i * scale_alpha;
+        double rescale = exp(m_i - m_new);
+        O_i *= rescale;
+        l_i *= rescale;
 
         for (long r = 0; r < len; ++r) {
             double P_ij = exp(S_ij[r] - m_new);
-            l_i = l_i + P_ij;
-            O_i = O_i + P_ij * V_j[r * d + t];
+            l_i += P_ij;
+            O_i += P_ij * V_j[r * nd + t];
         }
         m_i = m_new;
 
         __syncthreads();
     }
 
-    O_i = O_i / l_i;
-    O[i * d + t] = O_i;
+    O[i * nd + t] = O_i / l_i;
 }
 
 int main(int argc, char **argv)
@@ -118,12 +115,11 @@ int main(int argc, char **argv)
     // TODO (C2): choose the grid, block, and dynamic shared-memory size for
     // your design and launch attn_tiled here. The timing scaffold around
     // this launch is provided; do not change it.
-        dim3 grid(a.N);
+    dim3 grid(a.N);
     dim3 block(a.d);
-    size_t shmemBytes = ((size_t)a.d + 2 * 32 * (size_t)a.d + 32) * sizeof(double);
+    size_t shmemBytes = ((size_t)a.d + 2 * (size_t)B_K * a.d + B_K) * sizeof(double);
     attn_tiled<<<grid, block, shmemBytes>>>(a.N, a.d, scale, dQ, dK, dV, dO);
-
-
+    CUDA_CHECK(cudaGetLastError());
     cudaEventRecord(stopE);
     cudaEventSynchronize(stopE);
     float ms = 0.0f;

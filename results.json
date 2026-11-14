@@ -1,0 +1,329 @@
+{
+  "meta": {
+    "assignment": "hw3-cuda",
+    "mode": "gpu",
+    "generated_at": "2026-11-14T02:10:01.068175+00:00",
+    "grader_version": "1.0",
+    "host": {
+      "hostname": "hw3-vm-copy",
+      "platform": "Linux-6.8.0-1073-gcp-x86_64-with-glibc2.35",
+      "python_version": "3.10.12",
+      "cuda_available": true,
+      "nvcc_version": "12.6",
+      "gpu_name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+    }
+  },
+  "part_a": {
+    "vecadd00": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "vecadd00",
+          "N": 122880,
+          "values_per_thread": 1,
+          "time_ms": 0.094,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "vecadd00",
+          "N": 6144000,
+          "values_per_thread": 50,
+          "time_ms": 0.755,
+          "correct": 1,
+          "returncode": 0
+        }
+      ]
+    },
+    "vecadd01": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "vecadd01",
+          "N": 122880,
+          "values_per_thread": 1,
+          "time_ms": 0.088,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "vecadd01",
+          "N": 6144000,
+          "values_per_thread": 50,
+          "time_ms": 0.348,
+          "correct": 1,
+          "returncode": 0
+        }
+      ]
+    },
+    "matmult00": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "matmult00",
+          "size": 256,
+          "footprint": 16,
+          "time_ms": 0.131,
+          "correct": 1,
+          "max_abs_err": 0,
+          "returncode": 0
+        },
+        {
+          "program": "matmult00",
+          "size": 1024,
+          "footprint": 16,
+          "time_ms": 0.982,
+          "correct": 1,
+          "max_abs_err": 0,
+          "returncode": 0
+        }
+      ]
+    },
+    "matmult01": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "matmult01",
+          "size": 256,
+          "footprint": 32,
+          "time_ms": 0.128,
+          "correct": 1,
+          "max_abs_err": 0,
+          "returncode": 0
+        },
+        {
+          "program": "matmult01",
+          "size": 1024,
+          "footprint": 32,
+          "time_ms": 0.529,
+          "correct": 1,
+          "max_abs_err": 0,
+          "returncode": 0
+        }
+      ]
+    },
+    "coalescing_speedup": 2.1695402298850577,
+    "tiling_speedup": 1.8563327032136105
+  },
+  "part_b": {
+    "q1_cpu": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "q1_cpu",
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 3.023,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        }
+      ]
+    },
+    "q2_malloc": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "q2_malloc",
+          "scenario": 1,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 2580.43,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "q2_malloc",
+          "scenario": 2,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 9.874,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "q2_malloc",
+          "scenario": 3,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 0.01,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        }
+      ]
+    },
+    "q3_unified": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "q3_unified",
+          "scenario": 1,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 2548.674,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "q3_unified",
+          "scenario": 2,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 10.623,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        },
+        {
+          "program": "q3_unified",
+          "scenario": 3,
+          "K": 1,
+          "n": 1000000,
+          "time_ms": 2.064,
+          "checksum": 3000000.0,
+          "correct": 1,
+          "returncode": 0
+        }
+      ]
+    }
+  },
+  "part_c": {
+    "c1_naive": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "c1_naive",
+          "N": 8,
+          "d": 4,
+          "time_ms": 0.199,
+          "checksum": 7.914693
+        },
+        {
+          "program": "c1_naive",
+          "N": 129,
+          "d": 4,
+          "time_ms": 0.372,
+          "checksum": 290.714675
+        },
+        {
+          "program": "c1_naive",
+          "N": 257,
+          "d": 8,
+          "time_ms": 0.695,
+          "checksum": 1730.386294
+        },
+        {
+          "program": "c1_naive",
+          "N": 2048,
+          "d": 64,
+          "time_ms": 7.742,
+          "checksum": 623032.963445,
+          "returncode": 0
+        }
+      ]
+    },
+    "c2_tiled": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "c2_tiled",
+          "N": 8,
+          "d": 4,
+          "time_ms": 0.154,
+          "checksum": 7.914693
+        },
+        {
+          "program": "c2_tiled",
+          "N": 129,
+          "d": 4,
+          "time_ms": 0.256,
+          "checksum": 290.714675
+        },
+        {
+          "program": "c2_tiled",
+          "N": 257,
+          "d": 8,
+          "time_ms": 0.422,
+          "checksum": 1730.386294
+        },
+        {
+          "program": "c2_tiled",
+          "N": 2048,
+          "d": 64,
+          "time_ms": 40.081,
+          "checksum": 623032.963445,
+          "returncode": 0
+        }
+      ]
+    },
+    "c3_cublas": {
+      "status": "ok",
+      "reason": null,
+      "build_ok": true,
+      "runs": [
+        {
+          "program": "c3_cublas",
+          "N": 8,
+          "d": 4,
+          "time_ms": 34.802,
+          "checksum": 7.914693
+        },
+        {
+          "program": "c3_cublas",
+          "N": 129,
+          "d": 4,
+          "time_ms": 34.898,
+          "checksum": 290.714675
+        },
+        {
+          "program": "c3_cublas",
+          "N": 257,
+          "d": 8,
+          "time_ms": 35.043,
+          "checksum": 1730.386294
+        },
+        {
+          "program": "c3_cublas",
+          "N": 2048,
+          "d": 64,
+          "time_ms": 41.639,
+          "checksum": 623032.963445,
+          "returncode": 0
+        }
+      ]
+    },
+    "correctness": {
+      "c1_vs_c2_checksum_match": true,
+      "c1_vs_c3_checksum_match": true,
+      "reference_checksum_match": true
+    }
+  },
+  "part_c_bonus_triton": {
+    "status": "skipped",
+    "reason": "The Triton bonus (src/partc/c4_triton.ipynb) is graded by the TA on a rubric, not by this script -- it needs a GPU notebook run, which grade_local.py does not drive.",
+    "note": null
+  }
+}

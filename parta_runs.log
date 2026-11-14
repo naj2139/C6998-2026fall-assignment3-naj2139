@@ -1,0 +1,54 @@
+N=61440000 valuesPerThread=500
+Kernel Time: 10.225 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd00,N=61440000,values_per_thread=500,time_ms=10.225,correct=1
+N=61440000 valuesPerThread=500
+Kernel Time: 3.356 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd01,N=61440000,values_per_thread=500,time_ms=3.356,correct=1
+N=122880000 valuesPerThread=1000
+Kernel Time: 19.931 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd00,N=122880000,values_per_thread=1000,time_ms=19.931,correct=1
+N=122880000 valuesPerThread=1000
+Kernel Time: 6.700 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd01,N=122880000,values_per_thread=1000,time_ms=6.700,correct=1
+N=245760000 valuesPerThread=2000
+Kernel Time: 40.543 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd00,N=245760000,values_per_thread=2000,time_ms=40.543,correct=1
+N=245760000 valuesPerThread=2000
+Kernel Time: 13.276 milliseconds (ms)
+Test PASSED
+RESULT,program=vecadd01,N=245760000,values_per_thread=2000,time_ms=13.276,correct=1
+Matrix size: 256 x 256 (FOOTPRINT_SIZE=16)
+Kernel Time: 0.122 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult00,size=256,footprint=16,time_ms=0.122,correct=1,max_abs_err=0
+Matrix size: 512 x 512 (FOOTPRINT_SIZE=16)
+Kernel Time: 0.180 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult00,size=512,footprint=16,time_ms=0.180,correct=1,max_abs_err=0
+Matrix size: 1024 x 1024 (FOOTPRINT_SIZE=16)
+Kernel Time: 0.977 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult00,size=1024,footprint=16,time_ms=0.977,correct=1,max_abs_err=0
+Matrix size: 256 x 256 (FOOTPRINT_SIZE=32)
+Kernel Time: 0.126 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult01,size=256,footprint=32,time_ms=0.126,correct=1,max_abs_err=0
+Matrix size: 512 x 512 (FOOTPRINT_SIZE=32)
+Kernel Time: 0.135 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult01,size=512,footprint=32,time_ms=0.135,correct=1,max_abs_err=0
+Matrix size: 1024 x 1024 (FOOTPRINT_SIZE=32)
+Kernel Time: 0.528 milliseconds (ms)
+Max abs error vs CPU reference: 0
+Test PASSED
+RESULT,program=matmult01,size=1024,footprint=32,time_ms=0.528,correct=1,max_abs_err=0

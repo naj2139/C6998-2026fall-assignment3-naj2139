@@ -1,0 +1,3 @@
+[grade_local.py] mode=gpu arch=sm_89 host=hw3-vm-copy
+[grade_local.py] Wrote /home/nrushad2001/C6998-2026fall-assignment3-naj2139/results.json
+[grade_local.py] results.json validated against results.schema.json: OK
